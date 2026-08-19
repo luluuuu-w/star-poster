@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# 和 public/_redirects 一个作用，写在这里是为了让配置集中可见。
+# 两者同时存在时 _redirects 优先，规则一致所以没有冲突。
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

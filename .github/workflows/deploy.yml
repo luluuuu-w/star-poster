@@ -1,0 +1,53 @@
+name: 部署到 GitHub Pages
+
+# 推到 main 就自动构建并发布；也可以在 Actions 页面手动触发
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# GITHUB_TOKEN 需要这些权限才能发布 Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同时只跑一个部署，新的推送会取消正在进行的旧任务
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # 用 npm ci 而不是 npm install：严格按 package-lock.json 装，
+      # 保证线上构建用的依赖版本和本地完全一致
+      - run: npm ci
+
+      # 类型检查和单元测试都跑，构建失败就不会发布坏版本上去
+      - run: npm test
+      - run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
